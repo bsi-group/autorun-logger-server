@@ -1,3 +1,3 @@
 #!/bin/sh
-chmod +x /opt/lookup-portal/lookup-portal
-sudo setcap cap_net_bind_service+ep /opt/lookup-portal/lookup-portal
+chmod +x /opt/arl/arl
+sudo setcap cap_net_bind_service+ep /opt/arl/arl
