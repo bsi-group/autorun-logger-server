@@ -6,15 +6,42 @@ Golang applications always have a **src** directory which contains the applicati
 
     /autorun-logger-server/source/src/info-assure
 
-To compile golang applications, the **go build** command requires the **GOPATH** environment variable to be set. Assuming the source code is using the directory structure detailed above, then set the environment variable like so:
+## gb
 
-   $ export GOPATH=/autorun-logger-server/source
+The project uses [gb](https://getgb.io) for building the project. **gb** allows for reproducible builds and vendoring so that all dependencies are kept with the project source.
 
-The environment variable is always set one directory level above the **src** folder.
+To install **gb**, create a temporary directory and set the GOPATH environment variable to the new temporary directory.
+```
+$ export GOPATH=/home/bsmith/tempgb
+```
+Then download the source code for **gb**
+```
+go get github.com/constabulary/gb/...
+```
+Navigate to the **gb** sub-directory:
+```
+cd  /home/bsmith/tempgb/src/github.com/constabulary/gb
+```
+Build the project
+```
+go build
+```
+Copy the binaries to the local path
+```
+cp ../../../bin/* /usr/local/bin
+```
+The **gb** command maybe aliased with git, so check with:
+```
+alias gb
+```
+If the alias exists then you can unaliase by:
+```
+unalias gb
+```
+## Compile with gb
 
 To compile the application use the following commands (assuming the same directory structure):
-
 ```
-$ cd /autorun-logger-server/source/src/info-assure
-$ go build -o arl
+$ cd /autorun-logger-server/source/
+$ gb build all
 ```
