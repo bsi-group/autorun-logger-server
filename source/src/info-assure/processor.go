@@ -97,13 +97,13 @@ func (p *Processor) Process(it ImportTask) {
 
 	previousDataSet := p.getAutorunData(currentInstanceId, false)
 	if len(previousDataSet) == 0 {
-		logger.Errorf("No previous data to analyse: %d", currentInstanceId)
+		logger.Errorf("No previous data to analyse: instance.id=%d", currentInstanceId)
 		return
 	}
 
 	currentDataSet := p.getAutorunData(instance.Id, true)
 	if len(currentDataSet) == 0 {
-		logger.Errorf("No current data to analyse: %d", instance.Id)
+		logger.Errorf("No current data to analyse: instance.id=%d", instance.Id)
 		return
 	}
 
@@ -307,9 +307,9 @@ func (p *Processor) deleteStaleAutoruns(instanceId int64, currentTable bool) boo
 func (p *Processor) deleteOldInstance(previousId int64, currentId int64) bool {
 
 	_, err := p.db.
-	DeleteFrom("instance").
-	Where("(id <> $1) AND (id <> $2)", previousId, currentId).
-	Exec()
+		DeleteFrom("instance").
+		Where("(id <> $1) AND (id <> $2)", previousId, currentId).
+		Exec()
 
 	if err != nil {
 		logger.Errorf("Error deleting old instances: %v (%d, %d)", err, previousId, currentId)
@@ -428,7 +428,6 @@ func (p *Processor) getPreviousInstanceId(it ImportTask) int64 {
 
 	var i Instance
 
-	// SELECT * FROM instance WHERE domain = 'DESKTOP-ANJGLB2' AND host = 'DESKTOP-ANJGLB2' order by  timestamp DESC LIMIT 1
 	err := p.db.
 		Select("id").
 		From("instance").
@@ -455,7 +454,6 @@ func (p *Processor) getCurrentInstanceId(it ImportTask) int64 {
 
 	var i Instance
 
-	// SELECT * FROM instance WHERE domain = 'DESKTOP-ANJGLB2' AND host = 'DESKTOP-ANJGLB2' order by  timestamp DESC LIMIT 1
 	err := p.db.
 		Select("id").
 		From("instance").
@@ -466,9 +464,9 @@ func (p *Processor) getCurrentInstanceId(it ImportTask) int64 {
 
 	if err != nil {
 		if strings.Contains(err.Error(), "no rows in result set") == false {
-			logger.Errorf("Error retrieving previous instance record: %v", err)
+			logger.Errorf("Error retrieving current instance record: %v", err)
 		} else {
-			logger.Errorf("No previous instance record: %v (Domain: %s, Host: %s)", err, it.Domain, it.Host)
+			logger.Errorf("No current instance record: (Domain: %s, Host: %s)", it.Domain, it.Host)
 		}
 
 		return -1
@@ -495,9 +493,9 @@ func (p *Processor) getAutorunData(instanceId int64, currentTable bool) []*Autor
 
 	if err != nil {
 		if strings.Contains(err.Error(), "no rows in result set") == false {
-			logger.Errorf("Error retrieving previous autorun data record: %v", err)
+			logger.Errorf("Error retrieving autorun data record: %v", err)
 		} else {
-			logger.Errorf("No previous instance autoruns data: %v (Instance: %d)", err, instanceId)
+			logger.Errorf("No instance autoruns data: %v (Instance: %d)", err, instanceId)
 		}
 
 		return []*Autorun{}
@@ -511,9 +509,11 @@ func (p *Processor) analyseData(i Instance, previous []*Autorun, current []*Auto
 
 	var curr *Autorun
 	var prev *Autorun
-
 	located := false
+
 	for _, curr = range current {
+		located = false
+
 		for _, prev = range previous {
 
 			if (strings.ToLower(curr.ItemName) == strings.ToLower(prev.ItemName) &&
@@ -531,7 +531,5 @@ func (p *Processor) analyseData(i Instance, previous []*Autorun, current []*Auto
 		if located == false {
 			p.insertAlert(curr, i)
 		}
-
-		located = false
 	}
 }

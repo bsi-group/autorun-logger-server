@@ -20,7 +20,7 @@ import (
 
 const APP_TITLE string = "AutoRun Logger Server"
 const APP_NAME string = "arl-server"
-const APP_VERSION string = "0.0.1"
+const APP_VERSION string = "0.0.2"
 
 // ##### Variables ###########################################################
 
@@ -158,13 +158,13 @@ func initialiseLogging() {
 	// Define the StdOut loggingDatabaser
 	backendStdOut := logging.NewLogBackend(os.Stdout, "", 0)
 	formatStdOut:= logging.MustStringFormatter(
-		"%{color}%{time:15:04:05.000000} %{color:reset} %{message}",)
+		"%{color}%{time:2006-01-02T15:04:05.999} %{color:reset} %{message}",)
 	formatterStdOut := logging.NewBackendFormatter(backendStdOut, formatStdOut)
 
 	// Define the /var/log logging
 	backendFile := logging.NewLogBackend(logFile, "", 0)
 	formatFile:= logging.MustStringFormatter(
-		"%{time:15:04:05.000000} %{level:.4s} %{message}",)
+		"%{time:2006-01-02T15:04:05.999} %{level:.4s} %{message}",)
 	formatterFile := logging.NewBackendFormatter(backendFile, formatFile)
 
 	logging.SetBackend(formatterStdOut, formatterFile)
