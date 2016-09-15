@@ -84,7 +84,7 @@ func (p *Processor) Process(it ImportTask) {
 		}
 
 		// Now delete the data from "instance" where id == previousInstanceId
-		if p.deleteOldInstance(currentInstanceId, instance.Id) == false {
+		if p.deleteOldInstance(it.Domain, it.Host, currentInstanceId, instance.Id) == false {
 			tx.Rollback()
 			return
 		}
@@ -304,15 +304,15 @@ func (p *Processor) deleteStaleAutoruns(instanceId int64, currentTable bool) boo
 }
 
 // Deletes any old instance records e.g. where the instance is not the current one nor the previous
-func (p *Processor) deleteOldInstance(previousId int64, currentId int64) bool {
+func (p *Processor) deleteOldInstance(domain string, host string, previousId int64, currentId int64) bool {
 
 	_, err := p.db.
 		DeleteFrom("instance").
-		Where("(id <> $1) AND (id <> $2)", previousId, currentId).
+		Where("domain = $1 AND host = $2 AND (id <> $3) AND (id <> $4)", domain, host, previousId, currentId).
 		Exec()
 
 	if err != nil {
-		logger.Errorf("Error deleting old instances: %v (%d, %d)", err, previousId, currentId)
+		logger.Errorf("Error deleting old instances: %v (Domain: %s, Host: %s, Previous ID: %d, Current ID: %d)", err, domain, host, previousId, currentId)
 		return false
 	}
 
