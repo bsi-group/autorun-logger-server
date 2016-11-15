@@ -60,6 +60,7 @@ type Alert struct {
 	Time 			time.Time	`db:"time"`
 	Sha256			string		`db:"sha256"`
 	Md5				string		`db:"md5"`
+	Linked			string		`db:"linked"`
 }
 
 // Represents an "export" record

@@ -11,6 +11,7 @@ import (
 	"archive/zip"
 	"os"
 	"path"
+	"fmt"
 )
 
 // ##### Types ###############################################################
@@ -349,10 +350,10 @@ func (p *Processor) insertAlert(a *Autorun, i Instance) {
 		Columns("instance", "domain", "host", "timestamp", "autorun_id", "location",
 			"item_name", "enabled", "profile", "launch_string", "description", "company",
 			"signer", "version_number", "file_path", "file_name", "file_directory",
-			"time", "sha256", "md5").
+			"time", "sha256", "md5", "linked").
 		Values(i.Id, i.Domain, i.Host, i.Timestamp, a.Id, a.Location, a.ItemName, a.Enabled,
 			   a.Profile, a.LaunchString, a.Description, a.Company, a.Signer, a.VersionNumber,
-			   a.FilePath, a.FileName, a.FileDirectory, a.Time, a.Sha256, a.Md5).
+			   a.FilePath, a.FileName, a.FileDirectory, a.Time, a.Sha256, a.Md5, p.getLinkedAutoruns(i.Domain, i.Host, a.FilePath, a.Sha256)).
 		QueryStruct(&alert)
 
 	if err != nil {
@@ -361,6 +362,34 @@ func (p *Processor) insertAlert(a *Autorun, i Instance) {
 			return
 		}
 	}
+}
+
+//
+func (p *Processor) getLinkedAutoruns(domain string, host string, filePath string, sha256 string) string {
+
+	var autoruns []*Autorun
+
+	err := p.db.
+		Select("*").
+		From("current_autoruns").
+		Where("domain = $1 AND host = $2 AND (file_path = $3 OR sha256 = $4) ", domain, host, filePath, sha256).
+		QueryStructs(&autoruns)
+
+	if err != nil {
+		if strings.Contains(err.Error(), "no rows in result set") == false {
+			logger.Errorf("Error retrieving linked autorun records: %v", err)
+			return ""
+		}
+	}
+
+	linked := make([]string, 0)
+	for _, a := range autoruns {
+		linked = append(linked,
+			fmt.Sprintf(`Location: %s\nItem Name: %s\nProfile: %s\nCompany: %s\nDescription: %s\nLaunch String: %s\nSigner: %s\nSHA256: %s`,
+				a.Location, a.ItemName, a.Profile, a.Company, a.Description, a.LaunchString, a.Signer, a.Sha256))
+	}
+
+	return strings.Join(linked, "\n\n")
 }
 
 // Parses the autorun XML data and inserts each entry as a record in the database
