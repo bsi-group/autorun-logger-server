@@ -20,7 +20,7 @@ import (
 
 const APP_TITLE string = "AutoRun Logger Server"
 const APP_NAME string = "arl-server"
-const APP_VERSION string = "1.0.1"
+const APP_VERSION string = "1.0.2"
 
 // ##### Variables ###########################################################
 
@@ -54,6 +54,13 @@ func main() {
 
 	initialiseDatabase()
 	createProcessors()
+
+	// Debug
+	//p := NewProcessor(1, config, db)
+	//i := Instance{}
+	//i.Id = 277
+	//p.analyseData(i, 273)
+	//return
 
 	cronner = cron.New()
 	cronner.AddFunc("1 * * * * *", performHourlyTasks)

@@ -22,7 +22,13 @@ sudo -u postgres createdb arl
 - Change the terminal location to the **database** directory and ensure the **schema.sql** file is located in the directory
 - Import the database schema into the **arl** database. The following command will import the schema onto the local PostgresSQL server, using the **postgres** user. The **psql** command will prompt for the password
 ```
-sudo psql -U postgres -W -f schema.sql -h 127.0.0.1 -d arl
+sudo psql -U postgres -W -f schema.sql \
+-h 127.0.0.1 -d arl
+```
+- Define the database user privilege within the **arl** database. The following command will set the user/password/privileges within the database, using the **postgres** user. The **psql** command will prompt for the password. **Note that you should change the password within the grant-privileges.sql file before running this command**
+```
+sudo psql -U postgres -W -f grant-privileges.sql \
+-h 127.0.0.1 -d arl
 ```
 
 ### Other Database commands
@@ -70,7 +76,7 @@ Using the **list** godeb command (as shown below) will display the various versi
 The latest version can be installed using the following command:
 ```
 godeb install 1.6.2
-```    
+```
 
 ## Logging
 
@@ -97,20 +103,23 @@ The client uses HTTPS (TLS) to communicate with the server. An organisation spec
 openssl genrsa -out server.key 2048
 ```
 - Generate a new certificate in X509 format. The certificate generation process requires the user to enter various organisation details. The following shows the command and some DEMO values:
-```
-openssl req -new -x509 -key server.key -out server.pem -days 3650
 
-You are about to be asked to enter information that will be incorporated
-into your certificate request.
-What you are about to enter is what is called a Distinguished Name or a DN.
-There are quite a few fields but you can leave some blank
+```
+openssl req -new -x509 -key server.key -out server.pem \
+-days 3650
+
+You are about to be asked to enter information that will be
+incorporated into your certificate request.
+What you are about to enter is what is called a
+Distinguished Name or a DN. There are quite a few fields
+but you can leave some blank.
 For some fields there will be a default value,
 If you enter '.', the field will be left blank.
 -----
 Country Name (2 letter code) [AU]:COUNTRY
 State or Province Name (full name) [Some-State]:STATE
 Locality Name (eg, city) []:CITY
-Organization Name (eg, company) [Internet Widgits Pty Ltd]:COMPANY
+Organization Name (eg, company) []:COMPANY
 Organizational Unit Name (eg, section) []:SECTION
 Common Name (e.g. server FQDN or YOUR name) []:COMPANY
 Email Address []:USER@ORG
@@ -148,10 +157,12 @@ chmod +x /opt/arl/arl
 sudo setcap cap_net_bind_service+ep /opt/arl/arl
 ```
 - Next define the Systemd service config by creating a new service file:
+
 ```
 sudo nano /etc/systemd/system/arl.service
 ```
 - Copy the following to the service file or use the file located in the **configuration** directory:
+
 ```
 [Unit]
 Description=ARL

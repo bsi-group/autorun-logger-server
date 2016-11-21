@@ -96,19 +96,7 @@ func (p *Processor) Process(it ImportTask) {
 	// Now commit the data as we have received a good point
 	tx.Commit()
 
-	previousDataSet := p.getAutorunData(currentInstanceId, false)
-	if len(previousDataSet) == 0 {
-		logger.Errorf("No previous data to analyse: instance.id=%d", currentInstanceId)
-		return
-	}
-
-	currentDataSet := p.getAutorunData(instance.Id, true)
-	if len(currentDataSet) == 0 {
-		logger.Errorf("No current data to analyse: instance.id=%d", instance.Id)
-		return
-	}
-
-	p.analyseData(instance, previousDataSet, currentDataSet)
+	p.analyseData(instance, currentInstanceId)
 
 	if len(config.ArchiveDir) > 0 {
 		p.archiveData(it)
@@ -342,7 +330,7 @@ func (p *Processor) insertInstance(it ImportTask) Instance {
 }
 
 // Inserts a new "alert" record into the database
-func (p *Processor) insertAlert(a *Autorun, i Instance) {
+func (p *Processor) insertAlert(a *Autorun, i Instance, previousInstanceId int64) {
 
 	alert := Alert{}
 	err := p.db.
@@ -350,10 +338,11 @@ func (p *Processor) insertAlert(a *Autorun, i Instance) {
 		Columns("instance", "domain", "host", "timestamp", "autorun_id", "location",
 			"item_name", "enabled", "profile", "launch_string", "description", "company",
 			"signer", "version_number", "file_path", "file_name", "file_directory",
-			"time", "sha256", "md5", "linked").
+			"time", "sha256", "md5", "text", "linked").
 		Values(i.Id, i.Domain, i.Host, i.Timestamp, a.Id, a.Location, a.ItemName, a.Enabled,
-			   a.Profile, a.LaunchString, a.Description, a.Company, a.Signer, a.VersionNumber,
-			   a.FilePath, a.FileName, a.FileDirectory, a.Time, a.Sha256, a.Md5, p.getLinkedAutoruns(i.Domain, i.Host, a.FilePath, a.Sha256)).
+			a.Profile, a.LaunchString, a.Description, a.Company, a.Signer, a.VersionNumber,
+			a.FilePath, a.FileName, a.FileDirectory, a.Time, a.Sha256, a.Md5, p.getAlertText(a),
+			p.getLinkedAutoruns(previousInstanceId, a.FilePath, a.Sha256)).
 		QueryStruct(&alert)
 
 	if err != nil {
@@ -365,14 +354,30 @@ func (p *Processor) insertAlert(a *Autorun, i Instance) {
 }
 
 //
-func (p *Processor) getLinkedAutoruns(domain string, host string, filePath string, sha256 string) string {
+func (p *Processor) getAlertText(a *Autorun) string {
+	return fmt.Sprintf(
+		`<strong>File Path:</strong> %s<br>
+		<strong>Launch String:</strong> %s<br>
+		<strong>Enabled:</strong> %t<br>
+		<strong>Description:</strong> %s<br>
+		<strong>Company:</strong> %s<br>
+		<strong>Signer:</strong> %s<br>
+		<strong>Version:</strong> %s<br>
+		<strong>Time:</strong> %s<br>
+		<strong>SHA256:</strong> %s<br>
+		<strong>MD5:</strong> %s<br>`,
+		a.FilePath, a.LaunchString, a.Enabled, a.Description, a.Company, a.Signer, a.VersionNumber, a.Time.Format("15:04:05 02/01/2006"), a.Sha256, a.Md5)
+}
+
+// Attempts to identify other autoruns that are linked either by file path or SHA256
+func (p *Processor) getLinkedAutoruns(previousInstanceId int64, filePath string, sha256 string) string {
 
 	var autoruns []*Autorun
 
 	err := p.db.
 		Select("*").
-		From("current_autoruns").
-		Where("domain = $1 AND host = $2 AND (file_path = $3 OR sha256 = $4) ", domain, host, filePath, sha256).
+		From("previous_autoruns").
+		Where("instance = $1 AND (file_path = $2 OR sha256 = $3) ", previousInstanceId, filePath, sha256).
 		QueryStructs(&autoruns)
 
 	if err != nil {
@@ -384,9 +389,7 @@ func (p *Processor) getLinkedAutoruns(domain string, host string, filePath strin
 
 	linked := make([]string, 0)
 	for _, a := range autoruns {
-		linked = append(linked,
-			fmt.Sprintf(`Location: %s\nItem Name: %s\nProfile: %s\nCompany: %s\nDescription: %s\nLaunch String: %s\nSigner: %s\nSHA256: %s`,
-				a.Location, a.ItemName, a.Profile, a.Company, a.Description, a.LaunchString, a.Signer, a.Sha256))
+		linked = append(linked,p.getAlertText(a))
 	}
 
 	return strings.Join(linked, "\n\n")
@@ -533,8 +536,20 @@ func (p *Processor) getAutorunData(instanceId int64, currentTable bool) []*Autor
 	return autoruns
 }
 
-// Identifies new/changed autorun entries
-func (p *Processor) analyseData(i Instance, previous []*Autorun, current []*Autorun) {
+// Identifies new/changed/deleted autorun entries
+func (p *Processor) analyseData(i Instance, previousInstanceId int64) {
+
+	previous := p.getAutorunData(previousInstanceId, false)
+	if len(previous) == 0 {
+		logger.Errorf("No previous data to analyse: instance.id=%d", previousInstanceId)
+		return
+	}
+
+	current := p.getAutorunData(i.Id, true)
+	if len(current) == 0 {
+		logger.Errorf("No current data to analyse: instance.id=%d", i.Id)
+		return
+	}
 
 	var curr *Autorun
 	var prev *Autorun
@@ -545,8 +560,18 @@ func (p *Processor) analyseData(i Instance, previous []*Autorun, current []*Auto
 
 		for _, prev = range previous {
 
-			if (strings.ToLower(curr.ItemName) == strings.ToLower(prev.ItemName) &&
-				strings.ToLower(curr.Location) == strings.ToLower(prev.Location) &&
+			//if (strings.ToLower(curr.ItemName) == strings.ToLower(prev.ItemName) &&
+			//	strings.ToLower(curr.Location) == strings.ToLower(prev.Location) &&
+			//	strings.ToLower(curr.Profile) == strings.ToLower(prev.Profile) &&
+			//	strings.ToLower(curr.FilePath) == strings.ToLower(prev.FilePath) &&
+			//	strings.ToLower(curr.LaunchString) == strings.ToLower(prev.LaunchString) &&
+			//	strings.ToLower(curr.Sha256) == strings.ToLower(prev.Sha256)) {
+			//
+			//	located = true
+			//	break
+			//}
+
+			if (strings.ToLower(curr.Location) == strings.ToLower(prev.Location) &&
 				strings.ToLower(curr.Profile) == strings.ToLower(prev.Profile) &&
 				strings.ToLower(curr.FilePath) == strings.ToLower(prev.FilePath) &&
 				strings.ToLower(curr.LaunchString) == strings.ToLower(prev.LaunchString) &&
@@ -558,7 +583,9 @@ func (p *Processor) analyseData(i Instance, previous []*Autorun, current []*Auto
 		}
 
 		if located == false {
-			p.insertAlert(curr, i)
+			// Debug
+			//logger.Errorf("%v", curr)
+			p.insertAlert(curr, i, previousInstanceId)
 		}
 	}
 }
