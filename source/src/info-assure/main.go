@@ -1,16 +1,16 @@
 package main
 
 import (
-	"github.com/op/go-logging"
-	"github.com/voxelbrain/goptions"
+	"database/sql"
+	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/op/go-logging"
+	"github.com/robfig/cron"
+	"github.com/voxelbrain/goptions"
+	util "github.com/woanware/goutil"
 	"gopkg.in/mgutz/dat.v1"
 	"gopkg.in/mgutz/dat.v1/sqlx-runner"
 	"gopkg.in/yaml.v2"
-	"github.com/robfig/cron"
-	util "github.com/woanware/goutil"
-	"database/sql"
-	"fmt"
 	"os"
 	"runtime"
 	"time"
@@ -20,16 +20,16 @@ import (
 
 const APP_TITLE string = "AutoRun Logger Server"
 const APP_NAME string = "arl-server"
-const APP_VERSION string = "1.0.2"
+const APP_VERSION string = "1.0.3"
 
 // ##### Variables ###########################################################
 
 var (
-	logger 			*logging.Logger
-	config  		*Config
-	workQueue   	chan ImportTask
-	db				*runner.DB
-	cronner 		*cron.Cron
+	logger    *logging.Logger
+	config    *Config
+	workQueue chan ImportTask
+	db        *runner.DB
+	cronner   *cron.Cron
 )
 
 // ##### Methods #############################################################
@@ -41,8 +41,8 @@ func main() {
 	initialiseLogging()
 
 	opt := struct {
-		ConfigFile 	string        	`goptions:"-c, --config, description='Config file path'"`
-		Help		goptions.Help 	`goptions:"-h, --help, description='Show this help'"`
+		ConfigFile string        `goptions:"-c, --config, description='Config file path'"`
+		Help       goptions.Help `goptions:"-h, --help, description='Show this help'"`
 	}{ // Default values
 		ConfigFile: "./" + APP_NAME + ".config",
 	}
@@ -80,7 +80,7 @@ func main() {
 	r.GET("/", index)
 	r.GET("/:domain/:host", receive)
 	r.POST("/:domain/:host", receiveData)
-	r.RunTLS(config.HttpIp + ":" + fmt.Sprintf("%d", config.HttpPort), config.ServerPem, config.ServerKey)
+	r.RunTLS(config.HttpIp+":"+fmt.Sprintf("%d", config.HttpPort), config.ServerPem, config.ServerKey)
 }
 
 // Initialises the database connection
@@ -128,11 +128,11 @@ func createProcessors() {
 	for i := 0; i < processorCount; i++ {
 		logger.Infof("Initialising processor: %d", i+1)
 		p := NewProcessor(i, config, db)
-		go func (p *Processor) {
+		go func(p *Processor) {
 			for j := range workQueue {
 				p.Process(j)
 			}
-		} (p)
+		}(p)
 	}
 }
 
@@ -157,28 +157,28 @@ func initialiseLogging() {
 	f.Close()
 
 	// Define the /var/log file
-	logFile, err := os.OpenFile("/var/log/" + APP_NAME + "/log.txt", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	logFile, err := os.OpenFile("/var/log/"+APP_NAME+"/log.txt", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		logger.Fatal("Error opening the log file: %v", err)
 	}
 
 	// Define the StdOut loggingDatabaser
 	backendStdOut := logging.NewLogBackend(os.Stdout, "", 0)
-	formatStdOut:= logging.MustStringFormatter(
-		"%{color}%{time:2006-01-02T15:04:05.999} %{color:reset} %{message}",)
+	formatStdOut := logging.MustStringFormatter(
+		"%{color}%{time:2006-01-02T15:04:05.999} %{color:reset} %{message}")
 	formatterStdOut := logging.NewBackendFormatter(backendStdOut, formatStdOut)
 
 	// Define the /var/log logging
 	backendFile := logging.NewLogBackend(logFile, "", 0)
-	formatFile:= logging.MustStringFormatter(
-		"%{time:2006-01-02T15:04:05.999} %{level:.4s} %{message}",)
+	formatFile := logging.MustStringFormatter(
+		"%{time:2006-01-02T15:04:05.999} %{level:.4s} %{message}")
 	formatterFile := logging.NewBackendFormatter(backendFile, formatFile)
 
 	logging.SetBackend(formatterStdOut, formatterFile)
 }
 
 // Loads the applications config file contents (yaml) and marshals to a struct
-func loadConfig(configPath string) (*Config) {
+func loadConfig(configPath string) *Config {
 	c := new(Config)
 	data, err := util.ReadTextFromFile(configPath)
 	if err != nil {

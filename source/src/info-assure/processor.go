@@ -1,33 +1,33 @@
 package main
 
 import (
-	_ "github.com/lib/pq"
-	"gopkg.in/mgutz/dat.v1/sqlx-runner"
-	util "github.com/woanware/goutil"
-	"encoding/xml"
-	"strings"
-	"time"
-	"io/ioutil"
 	"archive/zip"
+	"encoding/xml"
+	"fmt"
+	_ "github.com/lib/pq"
+	util "github.com/woanware/goutil"
+	"gopkg.in/mgutz/dat.v1/sqlx-runner"
+	"io/ioutil"
 	"os"
 	"path"
-	"fmt"
+	"strings"
+	"time"
 )
 
 // ##### Types ###############################################################
 
 // Encapsulates a Processor object and its properties
 type Processor struct {
-	id 		int
-	config	*Config
-	db 		*runner.DB
+	id     int
+	config *Config
+	db     *runner.DB
 }
 
 //
 type ImportTask struct {
-	Domain 		string
-	Host 		string
-	Data		string
+	Domain string
+	Host   string
+	Data   string
 }
 
 // ##### Methods #############################################################
@@ -38,7 +38,7 @@ func NewProcessor(id int, config *Config, db *runner.DB) *Processor {
 	p := Processor{
 		id:     id,
 		config: config,
-		db: db,
+		db:     db,
 	}
 
 	return &p
@@ -115,7 +115,7 @@ func (p *Processor) correctXMLHeader(it *ImportTask) {
 // is received, the XML is compressed as a zip file, using the timestamp as the file name.
 func (p *Processor) archiveData(it ImportTask) {
 
-	domainHost :=  strings.ToLower(it.Domain) + "-" + strings.ToLower(it.Host)
+	domainHost := strings.ToLower(it.Domain) + "-" + strings.ToLower(it.Host)
 	archiveDir := path.Join(config.ArchiveDir, domainHost)
 	timestamp := time.Now().UTC().Format(time.RFC3339)
 
@@ -153,7 +153,7 @@ func (p *Processor) archiveData(it ImportTask) {
 		if len(files) == 0 {
 			p.moveArchiveFileToArchiveDir(archiveDir, timestamp, tempFile, md5, false)
 		} else {
-			lastFile := files[len(files) - 1].Name()
+			lastFile := files[len(files)-1].Name()
 
 			oldMd5, err := util.ReadTextFromFile(path.Join(archiveDir, lastFile))
 			if err != nil {
@@ -184,14 +184,14 @@ func (p *Processor) moveArchiveFileToArchiveDir(archiveDir string, fileName stri
 	}
 
 	// Move archive file to archive directory
-	err := os.Rename(tempFile, path.Join(archiveDir, fileName + ".zip"))
+	err := os.Rename(tempFile, path.Join(archiveDir, fileName+".zip"))
 	if err != nil {
 		logger.Errorf("Error moving file to archive directory: %v (%s)", err, archiveDir)
 		return
 	}
 
 	// Write MD5 value to a file
-	err = util.WriteBytesToFile(path.Join(archiveDir, fileName + ".zip.md5"), []byte(md5), false)
+	err = util.WriteBytesToFile(path.Join(archiveDir, fileName+".zip.md5"), []byte(md5), false)
 	if err != nil {
 		logger.Errorf("Error writing MD5 file: %v (%s)", err, archiveDir)
 		return
@@ -201,7 +201,7 @@ func (p *Processor) moveArchiveFileToArchiveDir(archiveDir string, fileName stri
 // Create zip file containing the XML autoruns output
 func (p *Processor) writeZipArchive(domainHost string, timestamp string, data string) string {
 
-	tf, err:= ioutil.TempFile(config.TempDir, "arl-")
+	tf, err := ioutil.TempFile(config.TempDir, "arl-")
 	if err != nil {
 		logger.Errorf("Error creating temp file: %v")
 		return ""
@@ -260,12 +260,12 @@ func (p *Processor) moveCurrentAutorunData(tx *runner.Tx, instanceId int64) bool
 				v.FilePath, v.FileName, v.FileDirectory, v.Time, v.Sha256, v.Md5).
 			QueryStruct(&a)
 
-			if err != nil {
-				if strings.Contains(err.Error(), "no rows in result set") == false {
-					logger.Errorf("Error moving Autorun: %v", err)
-					return false
-				}
+		if err != nil {
+			if strings.Contains(err.Error(), "no rows in result set") == false {
+				logger.Errorf("Error moving Autorun: %v", err)
+				return false
 			}
+		}
 	}
 
 	return true
@@ -281,7 +281,7 @@ func (p *Processor) deleteStaleAutoruns(instanceId int64, currentTable bool) boo
 
 	_, err := p.db.
 		DeleteFrom(tableName).
-		Where("instance = $1",instanceId).
+		Where("instance = $1", instanceId).
 		Exec()
 
 	if err != nil {
@@ -356,7 +356,9 @@ func (p *Processor) insertAlert(a *Autorun, i Instance, previousInstanceId int64
 //
 func (p *Processor) getAlertText(a *Autorun) string {
 	return fmt.Sprintf(
-		`<strong>File Path:</strong> %s<br>
+		`<strong>Item Name:</strong> %s<br>
+		<strong>Location:</strong> %s<br>
+		<strong>File Path:</strong> %s<br>
 		<strong>Launch String:</strong> %s<br>
 		<strong>Enabled:</strong> %t<br>
 		<strong>Description:</strong> %s<br>
@@ -366,7 +368,7 @@ func (p *Processor) getAlertText(a *Autorun) string {
 		<strong>Time:</strong> %s<br>
 		<strong>SHA256:</strong> %s<br>
 		<strong>MD5:</strong> %s<br>`,
-		a.FilePath, a.LaunchString, a.Enabled, a.Description, a.Company, a.Signer, a.VersionNumber, a.Time.Format("15:04:05 02/01/2006"), a.Sha256, a.Md5)
+		a.ItemName, a.Location, a.FilePath, a.LaunchString, a.Enabled, a.Description, a.Company, a.Signer, a.VersionNumber, a.Time.Format("15:04:05 02/01/2006"), a.Sha256, a.Md5)
 }
 
 // Attempts to identify other autoruns that are linked either by file path or SHA256
@@ -389,10 +391,10 @@ func (p *Processor) getLinkedAutoruns(previousInstanceId int64, filePath string,
 
 	linked := make([]string, 0)
 	for _, a := range autoruns {
-		linked = append(linked,p.getAlertText(a))
+		linked = append(linked, p.getAlertText(a))
 	}
 
-	return strings.Join(linked, "\n\n")
+	return strings.Join(linked, "<br><br>")
 }
 
 // Parses the autorun XML data and inserts each entry as a record in the database
@@ -439,7 +441,7 @@ func (p *Processor) insertAutoRunData(instanceId int64, it ImportTask) {
 		err = tx.
 			InsertInto("current_autoruns").
 			Columns("instance", "location", "item_name", "enabled", "profile", "launch_string", "description", "company",
-					"signer", "version_number", "file_path", "file_name", "file_directory", "time", "sha256", "md5").
+				"signer", "version_number", "file_path", "file_name", "file_directory", "time", "sha256", "md5").
 			Values(autorun.Instance, autorun.Location, autorun.ItemName, autorun.Enabled, autorun.Profile,
 				autorun.LaunchString, autorun.Description, autorun.Company, autorun.Signer, autorun.VersionNumber,
 				autorun.FilePath, autorun.FileName, autorun.FileDirectory, autorun.Time, autorun.Sha256, autorun.Md5).
@@ -571,11 +573,11 @@ func (p *Processor) analyseData(i Instance, previousInstanceId int64) {
 			//	break
 			//}
 
-			if (strings.ToLower(curr.Location) == strings.ToLower(prev.Location) &&
+			if strings.ToLower(curr.Location) == strings.ToLower(prev.Location) &&
 				strings.ToLower(curr.Profile) == strings.ToLower(prev.Profile) &&
 				strings.ToLower(curr.FilePath) == strings.ToLower(prev.FilePath) &&
 				strings.ToLower(curr.LaunchString) == strings.ToLower(prev.LaunchString) &&
-				strings.ToLower(curr.Sha256) == strings.ToLower(prev.Sha256)) {
+				strings.ToLower(curr.Sha256) == strings.ToLower(prev.Sha256) {
 
 				located = true
 				break
@@ -583,8 +585,6 @@ func (p *Processor) analyseData(i Instance, previousInstanceId int64) {
 		}
 
 		if located == false {
-			// Debug
-			//logger.Errorf("%v", curr)
 			p.insertAlert(curr, i, previousInstanceId)
 		}
 	}
