@@ -64,6 +64,8 @@ func (p *Processor) Process(it ImportTask) {
 		return
 	}
 
+	logger.Infof("Processing data: Domain: %s, Host: %s, Previous ID: %d, Current ID: %d, New ID: %d", it.Domain, it.Host, previousInstanceId, currentInstanceId, instance.Id)
+
 	if currentInstanceId > -1 {
 
 		// Move the current autorun data into the previous table
@@ -93,7 +95,7 @@ func (p *Processor) Process(it ImportTask) {
 
 	p.insertAutoRunData(instance.Id, it)
 
-	// Now commit the data as we have received a good point
+	// Now commit the data as we have reached a good point
 	tx.Commit()
 
 	p.analyseData(instance, currentInstanceId)
@@ -203,7 +205,7 @@ func (p *Processor) writeZipArchive(domainHost string, timestamp string, data st
 
 	tf, err := ioutil.TempFile(config.TempDir, "arl-")
 	if err != nil {
-		logger.Errorf("Error creating temp file: %v")
+		logger.Errorf("Error creating temp file: %v", err)
 		return ""
 	}
 	defer tf.Close()
@@ -213,19 +215,19 @@ func (p *Processor) writeZipArchive(domainHost string, timestamp string, data st
 
 	zf, err := zw.Create(domainHost + ".xml")
 	if err != nil {
-		logger.Errorf("Error creating zip writer file: %v")
+		logger.Errorf("Error creating zip writer file: %v", err)
 		return ""
 	}
 
 	_, err = zf.Write([]byte(data))
 	if err != nil {
-		logger.Errorf("Error creating zip writer file: %v")
+		logger.Errorf("Error creating zip writer file: %v", err)
 		return ""
 	}
 
 	err = zw.Close()
 	if err != nil {
-		logger.Errorf("Error creating zip writer file: %v")
+		logger.Errorf("Error creating zip writer file: %v", err)
 		return ""
 	}
 
@@ -236,7 +238,7 @@ func (p *Processor) writeZipArchive(domainHost string, timestamp string, data st
 // the "current_autoruns" table to the "previous_autoruns" table
 func (p *Processor) moveCurrentAutorunData(tx *runner.Tx, instanceId int64) bool {
 
-	var data []*Alert
+	var data []*Autorun
 
 	err := db.
 		Select(`*`).
@@ -249,16 +251,16 @@ func (p *Processor) moveCurrentAutorunData(tx *runner.Tx, instanceId int64) bool
 		return false
 	}
 
-	var a *Autorun
+	//var a *Autorun
 	for _, v := range data {
 		err = tx.
 			InsertInto("previous_autoruns").
 			Columns("instance", "location", "item_name", "enabled", "profile", "launch_string", "description", "company",
-				"signer", "version_number", "file_path", "file_name", "file_directory", "time", "sha256", "md5").
+				"signer", "version_number", "file_path", "file_name", "file_directory", "time", "sha256", "md5", "verified").
 			Values(v.Instance, v.Location, v.ItemName, v.Enabled, v.Profile,
 				v.LaunchString, v.Description, v.Company, v.Signer, v.VersionNumber,
-				v.FilePath, v.FileName, v.FileDirectory, v.Time, v.Sha256, v.Md5).
-			QueryStruct(&a)
+				v.FilePath, v.FileName, v.FileDirectory, v.Time, v.Sha256, v.Md5, v.Verified).
+			QueryStruct(&v)
 
 		if err != nil {
 			if strings.Contains(err.Error(), "no rows in result set") == false {
@@ -364,11 +366,12 @@ func (p *Processor) getAlertText(a *Autorun) string {
 		<strong>Description:</strong> %s<br>
 		<strong>Company:</strong> %s<br>
 		<strong>Signer:</strong> %s<br>
+		<strong>Verified:</strong> %s<br>
 		<strong>Version:</strong> %s<br>
 		<strong>Time:</strong> %s<br>
 		<strong>SHA256:</strong> %s<br>
 		<strong>MD5:</strong> %s<br>`,
-		a.ItemName, a.Location, a.FilePath, a.LaunchString, a.Enabled, a.Description, a.Company, a.Signer, a.VersionNumber, a.Time.Format("15:04:05 02/01/2006"), a.Sha256, a.Md5)
+		a.ItemName, a.Location, a.FilePath, a.LaunchString, a.Enabled, a.Description, a.Company, a.Signer, a.Verified, a.VersionNumber, a.Time.Format("15:04:05 02/01/2006"), a.Sha256, a.Md5)
 }
 
 // Attempts to identify other autoruns that are linked either by file path or SHA256
@@ -412,6 +415,7 @@ func (p *Processor) insertAutoRunData(instanceId int64, it ImportTask) {
 	var filePath string
 	var fileName string
 	var fileDirectory string
+	var signer string
 
 	tx, err := p.db.Begin()
 	defer tx.AutoRollback()
@@ -432,19 +436,34 @@ func (p *Processor) insertAutoRunData(instanceId int64, it ImportTask) {
 		autorun.ItemName = util.RemoveQuotes(a.ItemName)
 		autorun.LaunchString = util.RemoveQuotes(a.LaunchString)
 		autorun.Profile = util.RemoveQuotes(a.Profile)
-		autorun.Signer = util.RemoveQuotes(a.Signer)
 		autorun.VersionNumber = util.RemoveQuotes(a.Version)
 		autorun.Time = util.ParseTimestamp(LAYOUT_AUTORUNS, util.RemoveQuotes(a.Time))
 		autorun.Sha256 = util.RemoveQuotes(a.Sha256)
 		autorun.Md5 = util.RemoveQuotes(a.Md5)
 
+		if strings.Contains(strings.ToLower(a.Signer), "(verified)") == true {
+			autorun.Verified = true
+			// This is belt and braces e.g. if autoruns changes the format of its "signer" output
+			signer = strings.Replace(util.RemoveQuotes(a.Signer), "(Verified) ", "", -1)
+			signer = strings.Replace(signer, "(verified) ", "", -1)
+
+		} else {
+			autorun.Verified = false
+			signer = strings.Replace(util.RemoveQuotes(a.Signer), "(Not verified) ", "", -1)
+			// This is belt and braces e.g. if autoruns changes the format of its "signer" output
+			signer = strings.Replace(signer, "(Not Verified) ", "", -1)
+			signer = strings.Replace(signer, "(not verified) ", "", -1)
+		}
+
+		autorun.Signer = signer
+
 		err = tx.
 			InsertInto("current_autoruns").
 			Columns("instance", "location", "item_name", "enabled", "profile", "launch_string", "description", "company",
-				"signer", "version_number", "file_path", "file_name", "file_directory", "time", "sha256", "md5").
+				"signer", "version_number", "file_path", "file_name", "file_directory", "time", "sha256", "md5", "verified").
 			Values(autorun.Instance, autorun.Location, autorun.ItemName, autorun.Enabled, autorun.Profile,
 				autorun.LaunchString, autorun.Description, autorun.Company, autorun.Signer, autorun.VersionNumber,
-				autorun.FilePath, autorun.FileName, autorun.FileDirectory, autorun.Time, autorun.Sha256, autorun.Md5).
+				autorun.FilePath, autorun.FileName, autorun.FileDirectory, autorun.Time, autorun.Sha256, autorun.Md5, autorun.Verified).
 			QueryStruct(&autorun)
 
 		if err != nil {
