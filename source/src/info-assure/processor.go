@@ -357,6 +357,7 @@ func (p *Processor) insertAlert(a *Autorun, i Instance, previousInstanceId int64
 
 //
 func (p *Processor) getAlertText(a *Autorun) string {
+
 	return fmt.Sprintf(
 		`<strong>Item Name:</strong> %s<br>
 		<strong>Location:</strong> %s<br>
@@ -371,7 +372,9 @@ func (p *Processor) getAlertText(a *Autorun) string {
 		<strong>Time:</strong> %s<br>
 		<strong>SHA256:</strong> %s<br>
 		<strong>MD5:</strong> %s<br>`,
-		a.ItemName, a.Location, a.FilePath, a.LaunchString, a.Enabled, a.Description, a.Company, a.Signer, a.Verified, a.VersionNumber, a.Time.Format("15:04:05 02/01/2006"), a.Sha256, a.Md5)
+		a.ItemName, a.Location, a.FilePath, a.LaunchString, a.Enabled,
+		a.Description, a.Company, a.Signer, a.Verified, a.VersionNumber,
+		a.Time.Format("15:04:05 02/01/2006"), a.Sha256, a.Md5)
 }
 
 // Attempts to identify other autoruns that are linked either by file path or SHA256
