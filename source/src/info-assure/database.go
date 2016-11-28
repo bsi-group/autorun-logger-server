@@ -61,6 +61,7 @@ type Alert struct {
 	Time          time.Time `db:"time"`
 	Sha256        string    `db:"sha256"`
 	Md5           string    `db:"md5"`
+	Verified      bool      `db:"verified"`
 	Text          string    `db:"text"`
 	Linked        string    `db:"linked"`
 }

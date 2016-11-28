@@ -340,10 +340,10 @@ func (p *Processor) insertAlert(a *Autorun, i Instance, previousInstanceId int64
 		Columns("instance", "domain", "host", "timestamp", "autorun_id", "location",
 			"item_name", "enabled", "profile", "launch_string", "description", "company",
 			"signer", "version_number", "file_path", "file_name", "file_directory",
-			"time", "sha256", "md5", "text", "linked").
+			"time", "sha256", "md5", "verified", "text", "linked").
 		Values(i.Id, i.Domain, i.Host, i.Timestamp, a.Id, a.Location, a.ItemName, a.Enabled,
 			a.Profile, a.LaunchString, a.Description, a.Company, a.Signer, a.VersionNumber,
-			a.FilePath, a.FileName, a.FileDirectory, a.Time, a.Sha256, a.Md5, p.getAlertText(a),
+			a.FilePath, a.FileName, a.FileDirectory, a.Time, a.Sha256, a.Md5, a.Verified, p.getAlertText(a),
 			p.getLinkedAutoruns(previousInstanceId, a.FilePath, a.Sha256)).
 		QueryStruct(&alert)
 
@@ -584,18 +584,8 @@ func (p *Processor) analyseData(i Instance, previousInstanceId int64) {
 
 		for _, prev = range previous {
 
-			//if (strings.ToLower(curr.ItemName) == strings.ToLower(prev.ItemName) &&
-			//	strings.ToLower(curr.Location) == strings.ToLower(prev.Location) &&
-			//	strings.ToLower(curr.Profile) == strings.ToLower(prev.Profile) &&
-			//	strings.ToLower(curr.FilePath) == strings.ToLower(prev.FilePath) &&
-			//	strings.ToLower(curr.LaunchString) == strings.ToLower(prev.LaunchString) &&
-			//	strings.ToLower(curr.Sha256) == strings.ToLower(prev.Sha256)) {
-			//
-			//	located = true
-			//	break
-			//}
-
-			if strings.ToLower(curr.Location) == strings.ToLower(prev.Location) &&
+			if strings.ToLower(curr.ItemName) == strings.ToLower(prev.ItemName) &&
+				strings.ToLower(curr.Location) == strings.ToLower(prev.Location) &&
 				strings.ToLower(curr.Profile) == strings.ToLower(prev.Profile) &&
 				strings.ToLower(curr.FilePath) == strings.ToLower(prev.FilePath) &&
 				strings.ToLower(curr.LaunchString) == strings.ToLower(prev.LaunchString) &&
@@ -604,6 +594,16 @@ func (p *Processor) analyseData(i Instance, previousInstanceId int64) {
 				located = true
 				break
 			}
+
+			// if strings.ToLower(curr.Location) == strings.ToLower(prev.Location) &&
+			// 	strings.ToLower(curr.Profile) == strings.ToLower(prev.Profile) &&
+			// 	strings.ToLower(curr.FilePath) == strings.ToLower(prev.FilePath) &&
+			// 	strings.ToLower(curr.LaunchString) == strings.ToLower(prev.LaunchString) &&
+			// 	strings.ToLower(curr.Sha256) == strings.ToLower(prev.Sha256) {
+
+			// 	located = true
+			// 	break
+			// }
 		}
 
 		if located == false {
