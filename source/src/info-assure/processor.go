@@ -367,7 +367,7 @@ func (p *Processor) getAlertText(a *Autorun) string {
 		<strong>Description:</strong> %s<br>
 		<strong>Company:</strong> %s<br>
 		<strong>Signer:</strong> %s<br>
-		<strong>Verified:</strong> %s<br>
+		<strong>Verified:</strong> %t<br>
 		<strong>Version:</strong> %s<br>
 		<strong>Time:</strong> %s<br>
 		<strong>SHA256:</strong> %s<br>

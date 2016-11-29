@@ -20,7 +20,7 @@ import (
 
 const APP_TITLE string = "AutoRun Logger Server"
 const APP_NAME string = "arl-server"
-const APP_VERSION string = "1.0.4"
+const APP_VERSION string = "1.0.5"
 
 // ##### Variables ###########################################################
 
