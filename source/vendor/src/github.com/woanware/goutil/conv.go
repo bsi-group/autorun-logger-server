@@ -26,6 +26,10 @@ func ConvertUInt16ToString(data uint16) string {
 	return strconv.FormatInt(int64(data), 10 )
 }
 
+// Converts an Int64 to a string
+func ConvertInt8ToString(data int8) string {
+	return strconv.FormatInt(int64(data), 10)
+}
 
 // Converts an Int16 to a string
 func ConvertInt16ToString(data int16) string {
@@ -48,6 +52,25 @@ func ConvertStringToInt(data string) int {
 		return -1
 	}
 	return int(ret)
+}
+
+// Converts a string to an in32
+func ConvertStringToInt32(data string) int32 {
+	ret, err := strconv.ParseInt(data, 0, 32)
+	if err != nil {
+		return -1
+	}
+	return int32(ret)
+}
+
+//
+func ParseBool(data string) bool {
+	tmpBool, err := strconv.ParseBool(data)
+	if err != nil {
+		return false
+	}
+
+	return tmpBool
 }
 
 //

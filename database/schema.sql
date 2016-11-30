@@ -5,7 +5,7 @@
 -- Dumped from database version 9.5.5
 -- Dumped by pg_dump version 9.5.5
 
--- Started on 2016-11-29 07:50:32 GMT
+-- Started on 2016-11-29 18:59:44 GMT
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -65,7 +65,7 @@ CREATE TABLE alert (
     md5 text,
     linked text,
     text text,
-    verified boolean
+    verified smallint
 );
 
 
@@ -114,7 +114,7 @@ CREATE TABLE current_autoruns (
     "time" timestamp without time zone,
     sha256 text,
     md5 text,
-    verified boolean
+    verified smallint
 );
 
 
@@ -233,7 +233,7 @@ CREATE TABLE previous_autoruns (
     "time" timestamp without time zone,
     sha256 text,
     md5 text,
-    verified boolean
+    verified smallint
 );
 
 
@@ -401,7 +401,7 @@ CREATE INDEX instance_timestamp_idx ON instance USING btree ("timestamp");
 CREATE INDEX previous_autoruns_instance_idx ON previous_autoruns USING btree (instance);
 
 
--- Completed on 2016-11-29 07:50:32 GMT
+-- Completed on 2016-11-29 18:59:44 GMT
 
 --
 -- PostgreSQL database dump complete

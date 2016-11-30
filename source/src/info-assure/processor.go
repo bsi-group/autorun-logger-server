@@ -367,14 +367,29 @@ func (p *Processor) getAlertText(a *Autorun) string {
 		<strong>Description:</strong> %s<br>
 		<strong>Company:</strong> %s<br>
 		<strong>Signer:</strong> %s<br>
-		<strong>Verified:</strong> %t<br>
+		<strong>Verified:</strong> %s<br>
 		<strong>Version:</strong> %s<br>
 		<strong>Time:</strong> %s<br>
 		<strong>SHA256:</strong> %s<br>
 		<strong>MD5:</strong> %s<br>`,
 		a.ItemName, a.Location, a.FilePath, a.LaunchString, a.Enabled,
-		a.Description, a.Company, a.Signer, a.Verified, a.VersionNumber,
+		a.Description, a.Company, a.Signer, p.getVerifiedText(a.Verified), a.VersionNumber,
 		a.Time.Format("15:04:05 02/01/2006"), a.Sha256, a.Md5)
+}
+
+//
+func (p *Processor) getVerifiedText(verified int8) string {
+
+	switch verified {
+	case VERIFIED_FALSE:
+		return "False"
+	case VERIFIED_TRUE:
+		return "True"
+	case VERIFIED_MS:
+		return "True (Microsoft)"
+	default:
+		return ""
+	}
 }
 
 // Attempts to identify other autoruns that are linked either by file path or SHA256
@@ -445,13 +460,19 @@ func (p *Processor) insertAutoRunData(instanceId int64, it ImportTask) {
 		autorun.Md5 = util.RemoveQuotes(a.Md5)
 
 		if strings.Contains(strings.ToLower(a.Signer), "(verified)") == true {
-			autorun.Verified = true
+
 			// This is belt and braces e.g. if autoruns changes the format of its "signer" output
 			signer = strings.Replace(util.RemoveQuotes(a.Signer), "(Verified) ", "", -1)
 			signer = strings.Replace(signer, "(verified) ", "", -1)
 
+			if IsFalsePositive(true, signer) == true {
+				autorun.Verified = VERIFIED_MS
+			} else {
+				autorun.Verified = VERIFIED_TRUE
+			}
+
 		} else {
-			autorun.Verified = false
+			autorun.Verified = VERIFIED_FALSE
 			signer = strings.Replace(util.RemoveQuotes(a.Signer), "(Not verified) ", "", -1)
 			// This is belt and braces e.g. if autoruns changes the format of its "signer" output
 			signer = strings.Replace(signer, "(Not Verified) ", "", -1)

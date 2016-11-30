@@ -16,6 +16,9 @@ var logger log.Logger
 // LogQueriesThreshold is the threshold for logging "slow" queries
 var LogQueriesThreshold time.Duration
 
+// LogErrNoRows tells runner to log `sql.ErrNoRows`
+var LogErrNoRows bool
+
 func init() {
 	dat.Dialect = postgres.New()
 	logger = log.New("dat:sqlx")
@@ -39,7 +42,7 @@ func MustPing(db *sql.DB) {
 
 	// Ticks will continue to arrive when the previous operation is still running,
 	// so operations that take a while to fail could run in quick succession.
-	for _ = range ticker.C {
+	for range ticker.C {
 		if err = db.Ping(); err != nil {
 			logger.Info("pinging database...", err.Error())
 			continue

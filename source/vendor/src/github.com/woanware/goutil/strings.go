@@ -3,6 +3,9 @@ package goutil
 import (
 	"strings"
 	"fmt"
+	"crypto/md5"
+	"encoding/hex"
+	"io"
 )
 
 // Emulates the python partition function
@@ -44,4 +47,11 @@ func RemoveQuotes(data string) string {
 	}
 
 	return data
+}
+
+// MD5 hashes a string
+func Md5HashString (data string) string {
+	hasher := md5.New()
+	io.WriteString(hasher, data)
+	return hex.EncodeToString(hasher.Sum(nil))
 }

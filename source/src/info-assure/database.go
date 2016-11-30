@@ -35,7 +35,7 @@ type Autorun struct {
 	Time          time.Time `db:"time"`
 	Sha256        string    `db:"sha256"`
 	Md5           string    `db:"md5"`
-	Verified      bool      `db:"verified"`
+	Verified      int8      `db:"verified"`
 }
 
 // Represents an "alert" record
@@ -61,7 +61,7 @@ type Alert struct {
 	Time          time.Time `db:"time"`
 	Sha256        string    `db:"sha256"`
 	Md5           string    `db:"md5"`
-	Verified      bool      `db:"verified"`
+	Verified      int8      `db:"verified"`
 	Text          string    `db:"text"`
 	Linked        string    `db:"linked"`
 }
