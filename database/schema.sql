@@ -5,7 +5,7 @@
 -- Dumped from database version 9.5.5
 -- Dumped by pg_dump version 9.5.5
 
--- Started on 2016-12-01 10:05:18 GMT
+-- Started on 2016-12-01 11:19:23 GMT
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -24,7 +24,7 @@ CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
 
 
 --
--- TOC entry 2193 (class 0 OID 0)
+-- TOC entry 2194 (class 0 OID 0)
 -- Dependencies: 1
 -- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner: -
 --
@@ -83,7 +83,7 @@ CREATE SEQUENCE alert_id_seq
 
 
 --
--- TOC entry 2194 (class 0 OID 0)
+-- TOC entry 2195 (class 0 OID 0)
 -- Dependencies: 182
 -- Name: alert_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
@@ -132,7 +132,7 @@ CREATE SEQUENCE current_autoruns_id_seq
 
 
 --
--- TOC entry 2195 (class 0 OID 0)
+-- TOC entry 2196 (class 0 OID 0)
 -- Dependencies: 184
 -- Name: current_autoruns_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
@@ -167,7 +167,7 @@ CREATE SEQUENCE export_id_seq
 
 
 --
--- TOC entry 2196 (class 0 OID 0)
+-- TOC entry 2197 (class 0 OID 0)
 -- Dependencies: 186
 -- Name: export_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
@@ -202,7 +202,7 @@ CREATE SEQUENCE instance_id_seq
 
 
 --
--- TOC entry 2197 (class 0 OID 0)
+-- TOC entry 2198 (class 0 OID 0)
 -- Dependencies: 188
 -- Name: instance_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
@@ -251,7 +251,7 @@ CREATE SEQUENCE previous_autoruns_id_seq
 
 
 --
--- TOC entry 2198 (class 0 OID 0)
+-- TOC entry 2199 (class 0 OID 0)
 -- Dependencies: 190
 -- Name: previous_autoruns_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
@@ -309,7 +309,7 @@ ALTER TABLE ONLY alert
 
 
 --
--- TOC entry 2056 (class 2606 OID 21782)
+-- TOC entry 2057 (class 2606 OID 21782)
 -- Name: current_autoruns_pk; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -318,7 +318,7 @@ ALTER TABLE ONLY current_autoruns
 
 
 --
--- TOC entry 2066 (class 2606 OID 21784)
+-- TOC entry 2067 (class 2606 OID 21784)
 -- Name: instance_pk; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -327,7 +327,7 @@ ALTER TABLE ONLY instance
 
 
 --
--- TOC entry 2071 (class 2606 OID 21786)
+-- TOC entry 2072 (class 2606 OID 21786)
 -- Name: previous_autoruns_pk; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -336,7 +336,7 @@ ALTER TABLE ONLY previous_autoruns
 
 
 --
--- TOC entry 2060 (class 2606 OID 21788)
+-- TOC entry 2061 (class 2606 OID 21788)
 -- Name: summary_file_name_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -345,7 +345,7 @@ ALTER TABLE ONLY export
 
 
 --
--- TOC entry 2062 (class 2606 OID 21790)
+-- TOC entry 2063 (class 2606 OID 21790)
 -- Name: summary_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -354,7 +354,15 @@ ALTER TABLE ONLY export
 
 
 --
--- TOC entry 2053 (class 1259 OID 21830)
+-- TOC entry 2053 (class 1259 OID 21834)
+-- Name: alert_verified_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX alert_verified_idx ON alert USING btree (verified);
+
+
+--
+-- TOC entry 2054 (class 1259 OID 21830)
 -- Name: current_autoruns_file_path_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -362,7 +370,7 @@ CREATE INDEX current_autoruns_file_path_idx ON current_autoruns USING btree (fil
 
 
 --
--- TOC entry 2054 (class 1259 OID 21791)
+-- TOC entry 2055 (class 1259 OID 21791)
 -- Name: current_autoruns_instance_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -370,7 +378,7 @@ CREATE INDEX current_autoruns_instance_idx ON current_autoruns USING btree (inst
 
 
 --
--- TOC entry 2057 (class 1259 OID 21831)
+-- TOC entry 2058 (class 1259 OID 21831)
 -- Name: current_autoruns_sha256_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -378,7 +386,7 @@ CREATE INDEX current_autoruns_sha256_idx ON current_autoruns USING btree (sha256
 
 
 --
--- TOC entry 2058 (class 1259 OID 21792)
+-- TOC entry 2059 (class 1259 OID 21792)
 -- Name: export_data_type_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -386,7 +394,7 @@ CREATE INDEX export_data_type_idx ON export USING btree (data_type);
 
 
 --
--- TOC entry 2063 (class 1259 OID 21793)
+-- TOC entry 2064 (class 1259 OID 21793)
 -- Name: instance_domain_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -394,7 +402,7 @@ CREATE INDEX instance_domain_idx ON instance USING btree (domain);
 
 
 --
--- TOC entry 2064 (class 1259 OID 21794)
+-- TOC entry 2065 (class 1259 OID 21794)
 -- Name: instance_host_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -402,7 +410,7 @@ CREATE INDEX instance_host_idx ON instance USING btree (host);
 
 
 --
--- TOC entry 2067 (class 1259 OID 21795)
+-- TOC entry 2068 (class 1259 OID 21795)
 -- Name: instance_timestamp_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -410,7 +418,7 @@ CREATE INDEX instance_timestamp_idx ON instance USING btree ("timestamp");
 
 
 --
--- TOC entry 2068 (class 1259 OID 21833)
+-- TOC entry 2069 (class 1259 OID 21833)
 -- Name: previous_autoruns_file_path_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -418,7 +426,7 @@ CREATE INDEX previous_autoruns_file_path_idx ON previous_autoruns USING btree (f
 
 
 --
--- TOC entry 2069 (class 1259 OID 21796)
+-- TOC entry 2070 (class 1259 OID 21796)
 -- Name: previous_autoruns_instance_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -426,14 +434,14 @@ CREATE INDEX previous_autoruns_instance_idx ON previous_autoruns USING btree (in
 
 
 --
--- TOC entry 2072 (class 1259 OID 21832)
+-- TOC entry 2073 (class 1259 OID 21832)
 -- Name: previous_autoruns_sha256_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX previous_autoruns_sha256_idx ON previous_autoruns USING btree (sha256);
 
 
--- Completed on 2016-12-01 10:05:18 GMT
+-- Completed on 2016-12-01 11:19:23 GMT
 
 --
 -- PostgreSQL database dump complete
