@@ -415,7 +415,7 @@ func (p *Processor) getLinkedAutoruns(previousInstanceId int64, filePath string,
 		linked = append(linked, p.getAlertText(a))
 	}
 
-	return strings.Join(linked, "<br><br>")
+	return strings.Join(linked, "<br>")
 }
 
 // Parses the autorun XML data and inserts each entry as a record in the database
