@@ -400,7 +400,7 @@ func (p *Processor) getLinkedAutoruns(previousInstanceId int64, filePath string,
 	err := p.db.
 		Select("*").
 		From("previous_autoruns").
-		Where("instance = $1 AND (file_path = $2 OR sha256 = $3) ", previousInstanceId, filePath, sha256).
+		Where("instance = $1 AND (file_path = $2 OR sha256 = $3) AND sha256 <> ''", previousInstanceId, filePath, sha256).
 		QueryStructs(&autoruns)
 
 	if err != nil {
