@@ -261,7 +261,6 @@ func performDataPurge() {
 		QueryStructs(&ids)
 
 	for _, i := range ids {
-		logger.Errorf("%v", i)
 		_, err = db.
 			DeleteFrom("previous_autoruns").
 			Where("instance = $1", i).
