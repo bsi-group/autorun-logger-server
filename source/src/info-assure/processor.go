@@ -599,6 +599,7 @@ func (p *Processor) analyseData(i Instance, previousInstanceId int64) {
 	var curr *Autorun
 	var prev *Autorun
 	located := false
+	count := 0
 
 	for _, curr = range current {
 		located = false
@@ -628,7 +629,12 @@ func (p *Processor) analyseData(i Instance, previousInstanceId int64) {
 		}
 
 		if located == false {
+			count++
 			p.insertAlert(curr, i, previousInstanceId)
 		}
+	}
+
+	if count > 0 {
+		logger.Infof("Added %d alerts: (Domain: %s, Host: %s)", count, i.Domain, i.Host)
 	}
 }
