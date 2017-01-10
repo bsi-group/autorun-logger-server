@@ -20,7 +20,7 @@ import (
 
 const APP_TITLE string = "AutoRun Logger Server"
 const APP_NAME string = "arl-server"
-const APP_VERSION string = "1.0.6"
+const APP_VERSION string = "1.0.10"
 
 // ##### Variables ###########################################################
 
@@ -36,6 +36,7 @@ var (
 
 // Application entry point
 func main() {
+
 	fmt.Printf("\n%s (%s) %s\n\n", APP_TITLE, APP_NAME, APP_VERSION)
 
 	initialiseLogging()
@@ -86,6 +87,7 @@ func main() {
 
 // Initialises the database connection
 func initialiseDatabase() {
+
 	// create a normal database connection through database/sql
 	tempDb, err := sql.Open("postgres",
 		fmt.Sprintf("host=%s dbname=%s user=%s password=%s sslmode=disable",
@@ -118,6 +120,7 @@ func initialiseDatabase() {
 
 // Initialise the channels for the cross process comms and then start the workers
 func createProcessors() {
+
 	processorCount := runtime.NumCPU()
 	if config.ProcessorThreads > 0 {
 		processorCount = config.ProcessorThreads
@@ -139,6 +142,7 @@ func createProcessors() {
 
 // Sets up the logging infrastructure e.g. Stdout and /var/log
 func initialiseLogging() {
+
 	// Setup the actual loggers
 	logger = logging.MustGetLogger(APP_NAME)
 
@@ -180,6 +184,7 @@ func initialiseLogging() {
 
 // Loads the applications config file contents (yaml) and marshals to a struct
 func loadConfig(configPath string) *Config {
+
 	c := new(Config)
 	data, err := util.ReadTextFromFile(configPath)
 	if err != nil {
@@ -224,6 +229,7 @@ func loadConfig(configPath string) *Config {
 
 //
 func performHourlyTasks() {
+
 	exportAutorunData(SQL_SHA256, "SHA256", EXPORT_TYPE_SHA256, PREFIX_EXPORT_SHA256)
 	exportAutorunData(SQL_MD5, "MD5", EXPORT_TYPE_MD5, PREFIX_EXPORT_MD5)
 	exportInstanceData(SQL_DOMAIN, "Domain", EXPORT_TYPE_DOMAIN, PREFIX_EXPORT_DOMAIN)
@@ -260,6 +266,7 @@ func performDataPurge() {
 		Where("timestamp < $1", staleTimestamp).
 		QueryStructs(&ids)
 
+	// Delete from the "previous_autoruns" table
 	for _, i := range ids {
 		_, err = db.
 			DeleteFrom("previous_autoruns").
@@ -271,6 +278,7 @@ func performDataPurge() {
 		}
 	}
 
+	// Delete from the "current_autoruns" table
 	for _, i := range ids {
 		_, err = db.
 			DeleteFrom("current_autoruns").
@@ -282,6 +290,7 @@ func performDataPurge() {
 		}
 	}
 
+	// Delete from the "instance" table
 	for _, i := range ids {
 		_, err = db.
 			DeleteFrom("instance").

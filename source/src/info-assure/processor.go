@@ -616,16 +616,6 @@ func (p *Processor) analyseData(i Instance, previousInstanceId int64) {
 				located = true
 				break
 			}
-
-			// if strings.ToLower(curr.Location) == strings.ToLower(prev.Location) &&
-			// 	strings.ToLower(curr.Profile) == strings.ToLower(prev.Profile) &&
-			// 	strings.ToLower(curr.FilePath) == strings.ToLower(prev.FilePath) &&
-			// 	strings.ToLower(curr.LaunchString) == strings.ToLower(prev.LaunchString) &&
-			// 	strings.ToLower(curr.Sha256) == strings.ToLower(prev.Sha256) {
-
-			// 	located = true
-			// 	break
-			// }
 		}
 
 		if located == false {
