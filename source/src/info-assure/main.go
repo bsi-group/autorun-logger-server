@@ -11,25 +11,35 @@ import (
 	"gopkg.in/mgutz/dat.v1"
 	"gopkg.in/mgutz/dat.v1/sqlx-runner"
 	"gopkg.in/yaml.v2"
+	gomail "gopkg.in/gomail.v2"
 	"os"
 	"runtime"
 	"time"
+	"strings"
+	"bytes"
+	"encoding/csv"
+	"strconv"
+	"crypto/tls"
+	"io/ioutil"
 )
 
 // ##### Constants  ###########################################################
 
 const APP_TITLE string = "AutoRun Logger Server"
 const APP_NAME string = "arl-server"
-const APP_VERSION string = "1.0.10"
+const APP_VERSION string = "1.0.11"
+
+const EMAIL_ALERT_SUBJECT string = "ARL Alerts"
 
 // ##### Variables ###########################################################
 
 var (
-	logger    *logging.Logger
-	config    *Config
-	workQueue chan ImportTask
-	db        *runner.DB
-	cronner   *cron.Cron
+	logger      *logging.Logger
+	config      *Config
+	workQueue   chan ImportTask
+	db          *runner.DB
+	cronner     *cron.Cron
+	lastAlertId int64
 )
 
 // ##### Methods #############################################################
@@ -63,10 +73,22 @@ func main() {
 	//p.analyseData(i, 273)
 	//return
 
+	var err error
+	lastAlertId, err = getLastAlertId()
+	if err != nil {
+		logger.Fatalf("Error retrieving last alert ID: %v", err)
+	}
+
 	cronner = cron.New()
-	cronner.AddFunc("1 * * * * *", performHourlyTasks)
+	//cronner.AddFunc("1 * * * * *", performHourlyTasks)
 	cronner.AddFunc("@every 1h0m", performDataPurge)
-	//cronner.AddFunc("@hourly", performHourlyTasks)
+	cronner.AddFunc("@hourly", performHourlyTasks)
+
+	if config.AlertDurationHours > 0 {
+		//cronner.AddFunc("@hourly", sendAlerts)
+		cronner.AddFunc(fmt.Sprintf("* * %d * * *", config.AlertDurationHours), performHourlyTasks)
+	}
+
 	cronner.Start()
 
 	var r *gin.Engine
@@ -224,7 +246,38 @@ func loadConfig(configPath string) *Config {
 		logger.Fatal("Server key file not set in config file")
 	}
 
+	if c.AlertDurationHours < 0 || c.AlertDurationHours > 23 {
+		logger.Fatal("Invalid alert duration hours. Must be between 0 & 23")
+	}
+
+	if c.SmtpSender == "" {
+		c.SmtpSender = APP_NAME
+	}
+
 	return c
+}
+
+// Returns the last alert id, so that it can be used when sending SMTP alert data
+func getLastAlertId() (int64, error) {
+
+	var id int64
+
+	err := db.
+		Select(`id`).
+		From("alert").
+		OrderBy("id DESC").
+		Limit(1).
+		QueryStruct(&id)
+
+	if err != nil {
+		if strings.Contains(err.Error(), "no rows in result set") {
+			return -1, nil
+		} else {
+			return -1, err
+		}
+	}
+
+	return id, err
 }
 
 //
@@ -242,8 +295,6 @@ func performDataPurge() {
 	if config.MaxDataAgeDays == 0 || config.MaxDataAgeDays == -1 {
 		return
 	}
-
-	logger.Info("Purging data")
 
 	// Use the config file value to determine what is classed as an old job
 	staleTimestamp := time.Now().UTC().Add(-time.Duration(24*config.MaxDataAgeDays) * time.Hour)
@@ -300,5 +351,81 @@ func performDataPurge() {
 		if err != nil {
 			logger.Errorf("Error deleting stale instance records: %v (%d)", err, i)
 		}
+	}
+}
+
+//
+func sendAlerts() {
+
+	rows, err := db.DB.Queryx(fmt.Sprintf("SELECT * FROM alert WHERE id > %d", lastAlertId))
+	if err != nil {
+		logger.Errorf("Error performing the SELECT for alert summary: %v", err)
+		return
+	}
+	defer rows.Close()
+
+	// Initialise the CSV writer and output header line
+	buffer := &bytes.Buffer{}
+	csvWriter := csv.NewWriter(buffer)
+	csvWriter.Write([]string{"Domain", "Host", "Profile", "Timestamp", "Location", "ItemName", "Enabled",
+		"LaunchString", "Description", "Company", "Signer", "VersionNumber", "FilePath", "FileName",
+		"FileDirectory", "SHA256", "MD5", "Verified"})
+
+	a := Alert{}
+	foundData := false
+	for rows.Next() {
+		err = rows.StructScan(&a)
+		if err != nil {
+			logger.Errorf("Error performing struct scan for alert summary: %v", err)
+			continue
+		}
+
+		foundData = true
+
+		csvWriter.Write([]string{a.Domain, a.Host, a.Profile, a.Time.Format(time.RFC3339), a.Location, a.ItemName,
+			strconv.FormatBool(a.Enabled), a.LaunchString, a.Description, a.Company, a.Signer, a.VersionNumber,
+			a.FilePath, a.FileName, a.FileDirectory, a.Sha256, a.Md5, a.VersionNumber})
+
+		lastAlertId = a.Id
+	}
+
+	if foundData == false {
+		return
+	}
+
+	csvWriter.Flush()
+
+	tmpFile, err := ioutil.TempFile(config.TempDir, APP_NAME)
+	if err != nil {
+		logger.Errorf("Error creating CSV file alert email: %v", err)
+		return
+	}
+
+	err = util.WriteBytesToFile(tmpFile.Name(), buffer.Bytes(), false)
+	if err != nil {
+		logger.Errorf("Error writing CSV file alert email: %v", err)
+		return
+	}
+
+	sendEmail(tmpFile.Name())
+}
+
+//
+func sendEmail(attachmentPath string) {
+
+	defer os.Remove(attachmentPath)
+
+	dialer := gomail.NewDialer(config.SmtpServer, config.SmtpPort, config.SmtpUser, config.SmtpPassword)
+	dialer.TLSConfig = &tls.Config{InsecureSkipVerify: true}
+
+	msg := gomail.NewMessage()
+	msg.SetHeader("From", config.SmtpSender)
+	msg.SetHeader("To", config.SmtpReceiver)
+	msg.SetHeader("Subject", EMAIL_ALERT_SUBJECT)
+	msg.SetBody("text/html", "")
+	msg.Attach(attachmentPath)
+
+	if err := dialer.DialAndSend(msg); err != nil {
+		logger.Errorf("Error sending alert email: %v", err)
 	}
 }

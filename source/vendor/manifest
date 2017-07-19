@@ -223,6 +223,12 @@
 			"branch": "master"
 		},
 		{
+			"importpath": "gopkg.in/gomail.v2",
+			"repository": "https://gopkg.in/gomail.v2",
+			"revision": "81ebce5c23dfd25c6c67194b37d3dd3f338c98b1",
+			"branch": "v2"
+		},
+		{
 			"importpath": "gopkg.in/mgutz/dat.v1",
 			"repository": "https://gopkg.in/mgutz/dat.v1",
 			"revision": "c2a5759ae4b0303a8bf640d01a85ae3acc02455d",

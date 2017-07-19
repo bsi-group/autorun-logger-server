@@ -350,7 +350,6 @@ func (p *Processor) insertAlert(a *Autorun, i Instance, previousInstanceId int64
 	if err != nil {
 		if strings.Contains(err.Error(), "no rows in result set") == false {
 			logger.Errorf("Error inserting Alert record: %v", err)
-			return
 		}
 	}
 }

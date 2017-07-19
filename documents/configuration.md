@@ -16,3 +16,4 @@ There are various configuration options for the server application. This documen
 - server_pem: Full path to the server PEM file (server.pem)
 - server_key: Full path to the server key file (server.key)
 - max_data_age_days: Maximum age of alert, autorun data in days. Set to 0 or -1 to keep all data
+- alert_duration_hours: The number of alerts between alerts. Must be between 0 & 23. A value of 0 will disable the alerts
