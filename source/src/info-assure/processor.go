@@ -344,7 +344,7 @@ func (p *Processor) insertAlert(a *Autorun, i Instance, previousInstanceId int64
 		Values(i.Id, i.Domain, i.Host, i.Timestamp, a.Id, a.Location, a.ItemName, a.Enabled,
 			a.Profile, a.LaunchString, a.Description, a.Company, a.Signer, a.VersionNumber,
 			a.FilePath, a.FileName, a.FileDirectory, a.Time, a.Sha256, a.Md5, a.Verified, p.getAlertText(a),
-			p.getLinkedAutoruns(previousInstanceId, a.FilePath, a.Sha256)).
+			p.getLinkedAutoruns(previousInstanceId, a.FilePath, a.Sha256, a.Location, a.ItemName)).
 		QueryStruct(&alert)
 
 	if err != nil {
@@ -392,14 +392,14 @@ func (p *Processor) getVerifiedText(verified int8) string {
 }
 
 // Attempts to identify other autoruns that are linked either by file path or SHA256
-func (p *Processor) getLinkedAutoruns(previousInstanceId int64, filePath string, sha256 string) string {
+func (p *Processor) getLinkedAutoruns(previousInstanceId int64, filePath string, sha256 string, location string, itemName string) string {
 
 	var autoruns []*Autorun
 
 	err := p.db.
 		Select("*").
 		From("previous_autoruns").
-		Where("instance = $1 AND (file_path = $2 OR sha256 = $3) AND sha256 <> ''", previousInstanceId, filePath, sha256).
+		Where("instance = $1 AND (file_path = $2 AND location = $4 AND item_name = $5) OR (sha256 = $3) AND sha256 <> ''", previousInstanceId, filePath, sha256, location, itemName).
 		QueryStructs(&autoruns)
 
 	if err != nil {
@@ -618,6 +618,10 @@ func (p *Processor) analyseData(i Instance, previousInstanceId int64) {
 		}
 
 		if located == false {
+			located	= p.checkBasicProperties(curr, previous)
+		}
+
+		if located == false {
 			count++
 			p.insertAlert(curr, i, previousInstanceId)
 		}
@@ -626,4 +630,25 @@ func (p *Processor) analyseData(i Instance, previousInstanceId int64) {
 	if count > 0 {
 		logger.Infof("Added %d alerts: (Domain: %s, Host: %s)", count, i.Domain, i.Host)
 	}
+}
+
+// Re-run the checks again but miss the Item Name as this seems to create a lot of false positives
+func (p *Processor) checkBasicProperties (a *Autorun, previous []*Autorun) bool {
+
+	located := false
+
+	for _, prev := range previous {
+
+		if strings.ToLower(a.Location) == strings.ToLower(prev.Location) &&
+			strings.ToLower(a.Profile) == strings.ToLower(prev.Profile) &&
+			strings.ToLower(a.FilePath) == strings.ToLower(prev.FilePath) &&
+			strings.ToLower(a.LaunchString) == strings.ToLower(prev.LaunchString) &&
+			strings.ToLower(a.Sha256) == strings.ToLower(prev.Sha256) {
+
+			located = true
+			break
+		}
+	}
+
+	return located
 }

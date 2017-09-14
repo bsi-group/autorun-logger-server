@@ -53,3 +53,18 @@ func IsFalsePositive(isSigned bool, signer string) bool {
 
 	return false
 }
+
+//
+func getVerifiedString(v int8) string {
+
+	switch v {
+	case VERIFIED_TRUE:
+		return "True"
+	case VERIFIED_FALSE:
+		return "False"
+	case VERIFIED_MS:
+		return "Microsoft"
+	default:
+		return "Unknown"
+	}
+}

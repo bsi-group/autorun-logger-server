@@ -136,10 +136,9 @@ func setExportRecord(dataType int, fileName string) {
 		Select("id, data_type, file_name, updated").
 		From("export").
 		Where("data_type = $1 and file_name = $2", dataType, fileName).
-		OrderBy("id ASC").
 		QueryStruct(&e)
 
-	if e.Id > 0 {
+	if err != nil {
 		err = db.
 			Update("export").
 			Set("updated", time.Now().UTC()).
@@ -156,7 +155,7 @@ func setExportRecord(dataType int, fileName string) {
 
 	if err != nil {
 		if strings.Contains(err.Error(), "no rows in result set") == false {
-			logger.Errorf("Error inserting export record: %v (%s, %s, %s)", err, dataType, fileName)
+			logger.Errorf("Error inserting export record: %v (%d, %s)", err, dataType, fileName)
 		}
 	}
 }
