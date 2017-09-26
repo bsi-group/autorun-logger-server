@@ -21,7 +21,7 @@ import (
 
 const APP_TITLE string = "AutoRun Logger Server"
 const APP_NAME string = "arl-server"
-const APP_VERSION string = "1.0.11b"
+const APP_VERSION string = "1.0.11"
 
 const EMAIL_ALERT_SUBJECT string = "ARL Alerts"
 
@@ -129,7 +129,7 @@ func initialiseDatabase() {
 
 	// set to check things like sessions closing.
 	// Should be disabled in production/release builds.
-	dat.Strict = false
+	dat.Strict = true
 
 	// Log any query over 10ms as warnings. (optional)
 	runner.LogQueriesThreshold = 50 * time.Millisecond
@@ -186,7 +186,7 @@ func initialiseLogging() {
 		logger.Fatal("Error opening the log file: %v", err)
 	}
 
-	// Define the StdOut loggingDatabaser
+	// Define the StdOut logging
 	backendStdOut := logging.NewLogBackend(os.Stdout, "", 0)
 	formatStdOut := logging.MustStringFormatter(
 		"%{color}%{time:2006-01-02T15:04:05.999} %{color:reset} %{message}")

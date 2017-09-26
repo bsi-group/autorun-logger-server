@@ -124,7 +124,7 @@ func writeTempCsvFile(alertType string, fileName string, buffer *bytes.Buffer) s
 		return ""
 	}
 
-	return fileName + ".csv"
+	return fileName
 }
 
 //

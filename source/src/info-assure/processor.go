@@ -93,7 +93,10 @@ func (p *Processor) Process(it ImportTask) {
 		}
 	}
 
-	p.insertAutoRunData(instance.Id, it)
+	if p.insertAutoRunData(instance.Id, it) == false {
+		tx.Rollback()
+		return
+	}
 
 	// Now commit the data as we have reached a good point
 	tx.Commit()
@@ -418,13 +421,13 @@ func (p *Processor) getLinkedAutoruns(previousInstanceId int64, filePath string,
 }
 
 // Parses the autorun XML data and inserts each entry as a record in the database
-func (p *Processor) insertAutoRunData(instanceId int64, it ImportTask) {
+func (p *Processor) insertAutoRunData(instanceId int64, it ImportTask) bool {
 
 	var autoruns XmlAutoruns
 	err := xml.Unmarshal([]byte(it.Data), &autoruns)
 	if err != nil {
 		logger.Errorf("Error unmarshalling Autorun data: %v (%s)", err, "")
-		return
+		return false
 	}
 
 	var autorun *Autorun
@@ -492,11 +495,12 @@ func (p *Processor) insertAutoRunData(instanceId int64, it ImportTask) {
 		if err != nil {
 			if strings.Contains(err.Error(), "no rows in result set") == false {
 				logger.Errorf("Error inserting Autorun record: %v", err)
-				return
+				return false
 			}
 		}
 	}
 	tx.Commit()
+	return true
 }
 
 // Retrieves the instance id of the previous domain/host/user autorun data
